@@ -20,22 +20,25 @@ static uint8_t *masterRxData;
 static volatile uint16_t masterTxCurrentCnt;
 static volatile uint8_t masterRxCurrentCnt;
 
+static volatile uint8_t i2cMasterStatus;
+
 // Slave
 static volatile uint8_t *slaveData;
 static volatile uint8_t *defaultSlaveData;
 
 static volatile uint16_t slaveIndex;
-static volatile uint16_t defaultSlaveIndex;
+static volatile uint16_t slaveBufSize;
 
 static volatile uint8_t i2cInteralAddress;
 
-static uint8_t i2cTxDone; // 0 = in transfer , 1 = done
-static uint8_t i2cRxDone; // 0 = in transfer , 1 = done
-
-static volatile uint8_t i2cMasterStatus;
-
 static volatile uint8_t i2cSlaveTxDone;
 static volatile uint8_t i2cSlaveRxDone;
+
+static volatile uint8_t i2cSlaveTxInProgress;
+static volatile uint8_t i2cSlaveRxInProgress;
+
+static volatile uint8_t i2cStartDetected;
+static volatile uint8_t i2cGeneralCallDetected;
 
 
 void i2c_portSetup(void)
@@ -94,37 +97,7 @@ void i2c_disableAllInterrupt(void)
 {
 	IE2 &= ~(UCB0TXIE+UCB0RXIE);
 	UCB0I2CIE &= 0xF0;
-}
-
-
-void i2c_setTxDoneFlag(void)
-{
-	i2cTxDone = 1;
-}
-
-void i2c_clearTxDoneFlag(void)
-{
-	i2cTxDone = 0;
-}
-
-uint8_t i2c_getTxDoneFlag(void)
-{
-	return i2cTxDone;
-}
-
-void i2c_setRxDoneFlag(void)
-{
-	i2cRxDone = 1;
-}
-
-void i2c_clearRxDoneFlag(void)
-{
-	i2cRxDone = 0;
-}
-
-uint8_t i2c_getRxDoneFlag(void)
-{
-	return i2cRxDone;
+	UCB0I2COA &= ~UCGCEN;
 }
 
 
@@ -379,7 +352,7 @@ uint8_t i2c_masterWrite(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 	i2c_disableAllInterrupt();
 
 	masterTxData = data;
-	masterTxCurrentCnt = byteCount;
+	masterTxCurrentCnt = 0;
 
 	// set default I2C status
 	i2cMasterStatus = I2C_IDLE;
@@ -496,7 +469,7 @@ uint8_t i2c_masterRead(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 	i2c_disableAllInterrupt();
 
 	masterRxData = data;
-	masterRxCurrentCnt = byteCount;
+	masterRxCurrentCnt = 0;
 	lastCount = byteCount - 1;
 
 	// set default I2C status
@@ -624,13 +597,17 @@ uint8_t i2c_masterRead(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 }
 
 
-void i2c_slaveInit(uint8_t ownAddress, uint8_t byteCount, uint8_t *data)
+void i2c_slaveInit(uint8_t ownAddress, uint8_t dataSize, uint8_t *data)
 {
+	// disable all i2c interrupt in the beginning
+	i2c_disableAllInterrupt();
+
 	// initialize buffer and count
-	slaveData = data;
-	slaveIndex = byteCount;
-	defaultSlaveIndex = byteCount;
-	defaultSlaveData= data;
+	i2cInteralAddress = 0; 						// Init internal address
+	slaveIndex = 0;								// reset slave index
+	slaveBufSize = dataSize;					// Store slave buffer size
+	slaveData = data;							// store buffer address
+	defaultSlaveData = data;					// Store default slave data address
 
 	// TODO: check whether slave also need to configure the clock!!
 	UCB0CTL1 |= UCSWRST;                      // Enable SW reset
@@ -641,9 +618,18 @@ void i2c_slaveInit(uint8_t ownAddress, uint8_t byteCount, uint8_t *data)
 
 void i2c_slaveStart(void)
 {
+	// init I2C slave status
+	i2cSlaveTxDone = 0;
+	i2cSlaveRxDone = 0;
+	i2cSlaveTxInProgress = 0;
+	i2cSlaveRxInProgress = 0;
+	i2cStartDetected = 0;
+	i2cGeneralCallDetected = 0;
+
 	IE2 |= UCB0TXIE + UCB0RXIE;               // Enable TX interrupt
-	UCB0I2CIE |= UCSTTIE;                     // Enable STT interrupt
-	// TODO: enalbe general call interrupt
+	UCB0I2CIE |= UCSTTIE+UCSTPIE;                     // Enable START and STOP interrupt
+	//enalbe general call interrupt
+	UCB0I2COA |= UCGCEN;
 }
 
 uint8_t i2c_getInternalAddress(void)
@@ -671,6 +657,15 @@ void i2c_setSlaveRxDone(uint8_t status)
 	i2cSlaveRxDone = status;
 }
 
+uint8_t i2c_getGeneralCallDetected(void)
+{
+	return i2cGeneralCallDetected;
+}
+
+void i2c_setGeneralCallDetected(uint8_t status)
+{
+	   i2cGeneralCallDetected = status;
+}
 
 uint8_t i2c_checkInternalAddress(uint8_t addr)
 {
@@ -699,28 +694,51 @@ void i2c_busRecovery(void)
 #pragma vector = USCIAB0RX_VECTOR
 __interrupt void USCIAB0RX_ISR(void)
 {
-	// Master & Slave Mode: when NACK is detected
-	if (UCB0STAT & UCNACKIFG){            // send STOP if slave sends NACK
+	// Master Mode: when NACK is detected
+	if (UCB0STAT & UCNACKIFG)
+	{   // send STOP if slave sends NACK
 		if (UCB0CTL0 & UCMST)
 		{
 			UCB0CTL1 |= UCTXSTP;
 		}
+	}
 
-		//IFG2 &= ~UCB0TXIFG;
-//	UCB0STAT &= ~UCNACKIFG;
-	//	i2c_disableRXInterrupt();
-	//	TA0CCTL0 |= CCIE;
-	//	__bic_SR_register_on_exit(LPM3_bits);
+	if(UCB0STAT & UCSTPIFG)
+	{
+		UCB0STAT &= ~UCSTPIFG;
+	   // if receive mode
+	   if(i2cSlaveRxInProgress)
+	   {
+		   i2cSlaveRxInProgress = 0;
+		   i2cSlaveRxDone = 1;
+	   }
+
+	   // if transmit mode
+	   if(i2cSlaveTxInProgress)
+	   {
+		   i2cSlaveTxInProgress = 0;
+		   i2cSlaveTxDone = 1;
+	   }
+	   __bic_SR_register_on_exit(LPM3_bits);
+	}
+
+	if (UCB0STAT & UCGC)
+	{
+		UCB0STAT &= ~UCGC;
+		i2cGeneralCallDetected = 1;
+		__bic_SR_register_on_exit(LPM3_bits);
 	}
 
 	// Slave mode: when start condition is detected
 	if (UCB0STAT & UCSTTIFG)
 	{
 		UCB0STAT &= ~UCSTTIFG;                    // Clear start condition int flag
+		i2cStartDetected = 1;
 		// initialize something
-		slaveData = defaultSlaveData;
-		slaveIndex = defaultSlaveIndex;
+		 slaveIndex = 0;							// Initialize the index counter for slave mode
+		 slaveData = defaultSlaveData;			// Initialize the base address of slave buffer
 	}
+
 }
 
 #pragma vector = USCIAB0TX_VECTOR
@@ -743,50 +761,88 @@ __interrupt void USCIAB0TX_ISR(void)
 		}
 		else
 		{
+		   if (i2cStartDetected)
+		   {
+			   i2cStartDetected = 0;
+			   i2cSlaveRxInProgress = 1;
+			   i2cInteralAddress = UCB0RXBUF;
+
+			   // boundary check
+			   if((i2cInteralAddress >=0) && (i2cInteralAddress < slaveBufSize))
+			   {
+				   slaveData = slaveData + i2cInteralAddress;
+				   slaveIndex = i2cInteralAddress;
+			   }
+			   else
+			   {
+				   // if internal address is not matched, set to default address
+				   i2cInteralAddress = 0x00;
+				   slaveIndex = 0;
+				   // from the datasheet, USART module cannot send NACK when in Slave mode
+				   // so make master sure to send right internal address otherwise master will read trash value
+				   // TODO: do something when slave has wrong internal address
+			   }
+		   }
+		   else
+		   {
+			   // check Overflows
+			   if(slaveIndex < slaveBufSize)
+			   {
+				   *slaveData = UCB0RXBUF;
+				   slaveData++;
+				   slaveIndex++;
+			   }
+			   else
+			   {
+				   volatile uint8_t dummy;
+				   // To clear the interrupt flag, write data to dummy
+				   dummy = UCB0RXBUF;
+			   }
+		   }
 			// Slave
-			if(slaveIndex-1)
-			{
-
-				// check the first data is matched to beacon packet address and store the address value for later use
-				if (slaveIndex == defaultSlaveIndex)
-				{
-					i2cInteralAddress = UCB0RXBUF;
-					if(i2c_checkInternalAddress(i2cInteralAddress))
-					{
-						// store the address value separated from the buffer
-						//beaconPacketAddress = *slaveRXData;
-						// change the data pointer position
-						// TODO: check whether below is correct
-						slaveData = slaveData + i2cInteralAddress*8;
-						slaveIndex = 8;
-					}
-					else
-					{
-						// set to default address
-						i2cInteralAddress = 0x0;
-						// NOT the internal address we want
-						// release the bus (send NACK)
-						// TODO:how do we know when NACK is out??
-						UCB0CTL1 |= UCTXNACK;
-						// TODO: initialize variables
-					}
-				}
-				else
-				{
-					*slaveData = UCB0RXBUF;
-					slaveData++;
-					slaveIndex --;
-				}
-
-			}
-			else
-			{
-
-				// when we receive all data
-				*slaveData = UCB0RXBUF;
-				i2cSlaveRxDone = 1;
-				__bic_SR_register_on_exit(LPM3_bits);
-			}
+//			if(slaveIndex-1)
+//			{
+//
+//				// check the first data is matched to beacon packet address and store the address value for later use
+//				if (slaveIndex == defaultSlaveIndex)
+//				{
+//					i2cInteralAddress = UCB0RXBUF;
+//					if(i2c_checkInternalAddress(i2cInteralAddress))
+//					{
+//						// store the address value separated from the buffer
+//						//beaconPacketAddress = *slaveRXData;
+//						// change the data pointer position
+//						// TODO: check whether below is correct
+//						slaveData = slaveData + i2cInteralAddress*8;
+//						slaveIndex = 8;
+//					}
+//					else
+//					{
+//						// set to default address
+//						i2cInteralAddress = 0x0;
+//						// NOT the internal address we want
+//						// release the bus (send NACK)
+//						// TODO:how do we know when NACK is out??
+//						UCB0CTL1 |= UCTXNACK;
+//						// TODO: initialize variables
+//					}
+//				}
+//				else
+//				{
+//					*slaveData = UCB0RXBUF;
+//					slaveData++;
+//					slaveIndex --;
+//				}
+//
+//			}
+//			else
+//			{
+//
+//				// when we receive all data
+//				*slaveData = UCB0RXBUF;
+//				i2cSlaveRxDone = 1;
+//				__bic_SR_register_on_exit(LPM3_bits);
+//			}
 		}
 	}
 
@@ -800,37 +856,61 @@ __interrupt void USCIAB0TX_ISR(void)
 		}
 		else
 		{
+		   if(i2cStartDetected)
+		   {
+			   i2cStartDetected = 0;
+			   i2cSlaveTxInProgress = 1;
+			   slaveData = slaveData + i2cInteralAddress;
+			   slaveIndex = i2cInteralAddress;
+			   UCB0TXBUF = *slaveData;
+			   slaveData++;
+			   slaveIndex++;
+		   }
+		   else
+		   {
+			   // check overflows
+			   if(slaveIndex < slaveBufSize)
+			   {
+				   UCB0TXBUF = *slaveData;
+				   slaveData++;
+				   slaveIndex++;
+			   }
+			   else
+			   {
+				   UCB0TXBUF = 0xFF;
+			   }
+		   }
 			// Slave
-			if (slaveIndex - 1)
-			{
-				// first byte to send?
-				if (slaveIndex == defaultSlaveIndex)
-				{
-						// TODO: Is multiplying takes long time? looks like there's SCL stretching when master read from this slave.
-						// Maybe because we load the UCB0TXBUF buffer after multiplication instruction.
-						slaveData = slaveData + i2cInteralAddress*8;
-						slaveIndex = 8;
-						UCB0TXBUF = *slaveData;
-						slaveData++;
-						slaveIndex --;
-				}
-				else
-				{
-					UCB0TXBUF = *slaveData;
-					slaveData++;
-					slaveIndex --;
-				}
-			}
-			else
-			{
-				// TODO: when all sent, send NACK??
-				//UCB0CTL1 |=UCTXNACK;
-				// when we transmit all the data
-				UCB0TXBUF = *slaveData;
-				i2cSlaveTxDone = 1;
-				__bic_SR_register_on_exit(LPM3_bits);
-
-			}
+//			if (slaveIndex - 1)
+//			{
+//				// first byte to send?
+//				if (slaveIndex == defaultSlaveIndex)
+//				{
+//						// TODO: Is multiplying takes long time? looks like there's SCL stretching when master read from this slave.
+//						// Maybe because we load the UCB0TXBUF buffer after multiplication instruction.
+//						slaveData = slaveData + i2cInteralAddress*8;
+//						slaveIndex = 8;
+//						UCB0TXBUF = *slaveData;
+//						slaveData++;
+//						slaveIndex --;
+//				}
+//				else
+//				{
+//					UCB0TXBUF = *slaveData;
+//					slaveData++;
+//					slaveIndex --;
+//				}
+//			}
+//			else
+//			{
+//				// TODO: when all sent, send NACK??
+//				//UCB0CTL1 |=UCTXNACK;
+//				// when we transmit all the data
+//				UCB0TXBUF = *slaveData;
+//				i2cSlaveTxDone = 1;
+//				__bic_SR_register_on_exit(LPM3_bits);
+//
+//			}
 		}
 	}
 	IO_SET(EXTWDT,LOW);

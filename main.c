@@ -61,13 +61,57 @@ void main(void) {
 	while(1)
 	{
 
-//		i2c_generalCall();
-//		i2c_masterWrite(0x50, 9, TxData);
+//    	volatile uint8_t i;
+//    	for(i = 0 ; i < 255 ; i++)
+//    	{
+//    	TxData[0]= 1;
+//		TxData[1]= i;
+//		i2c_masterWrite(0x50, 2, TxData);
 //		i2c_masterRead(0x50, 1, RxData);
-//		i2c_masterRead(0x50, 4, RxData);
+//    	}
+
 //		i2c_generalCall();
 //		i2c_masterWrite(0x50, 1, TxData);
-
+////		i2c_masterRead(0x50, 1, RxData);
+//		i2c_masterRead(0x50, 4, RxData);
+//		TxData[0]= 0;
+//		TxData[1]= 123;
+//		i2c_masterWrite(0x50, 2, TxData);
+//		i2c_masterRead(0x50, 1, RxData);
+//
+//		TxData[0]= 32;
+//		TxData[1]= 200;
+//		i2c_masterWrite(0x50, 2, TxData);
+//		i2c_masterRead(0x50, 1, RxData);
+//
+//		TxData[0]= 10;
+//		TxData[1]= 77;
+//		i2c_masterWrite(0x50, 2, TxData);
+//		i2c_masterRead(0x50, 1, RxData);
+//
+//		// last address
+//		TxData[0]= 63;
+//		TxData[1]= 77;
+//		i2c_masterWrite(0x50, 2, TxData);
+//		i2c_masterRead(0x50, 1, RxData);
+//
+//		// last address write overflow ignore
+//		TxData[0]= 63;
+//		TxData[1]= 77;
+//		TxData[2]= 88;
+//		i2c_masterWrite(0x50, 3, TxData);
+//		i2c_masterRead(0x50, 1, RxData);
+//
+//		// first again
+//		TxData[0]= 0;
+//		TxData[1]= 123;
+//		i2c_masterWrite(0x50, 2, TxData);
+//		i2c_masterRead(0x50, 1, RxData);
+//
+//		// last address read overflow 0xFF
+//		TxData[0]= 63;
+//		i2c_masterWrite(0x50, 1, TxData);
+//		i2c_masterRead(0x50, 8, RxData);
 
 //	    __bis_SR_register(LPM3_bits + GIE);
 
