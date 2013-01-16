@@ -20,7 +20,6 @@
 #define EXTWDT_PIN 2
 
 void int_wdt_disable(void);
-void clock_setup(void);
 void IO_setup(void);
 void ext_wdt_setup(void);
 

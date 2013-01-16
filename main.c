@@ -22,8 +22,10 @@ void main(void) {
 	WDTCTL = WDTPW + WDTHOLD;		// Stop watchdog timer
 	// default: MCLK = SMCLK = DCO ~ 1.2MHz
 	// set DCO speed to calibrated 1MHz
-	BCSCTL1 = CALBC1_8MHZ;
-	DCOCTL = CALDCO_8MHZ;
+//	BCSCTL1 = CALBC1_8MHZ;
+//	DCOCTL = CALDCO_8MHZ;
+	clock_setup();
+	clock_dividerSetup(MCLK_DIVIDED_BY_1, SMCLK_DIVIDED_BY_1, ACLK_DIVIDED_BY_1);
 	// TODO: Internal Capacitor VS External Capacitor???
 	//	BCSCTL3 |= XCAP_0;
 	// general IO init
@@ -113,7 +115,7 @@ void main(void) {
 //		i2c_masterWrite(0x50, 1, TxData);
 //		i2c_masterRead(0x50, 8, RxData);
 
-//	    __bis_SR_register(LPM3_bits + GIE);
+	    __bis_SR_register(LPM3_bits + GIE);
 
 	}
 }

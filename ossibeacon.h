@@ -11,6 +11,7 @@
 #include "msp430x21x2.h"
 #include "debug.h"
 #include "system.h"
+#include "clock.h"
 #include "ossitypes.h"
 #include "util.h"
 
