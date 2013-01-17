@@ -10,12 +10,7 @@
 
 #include "ossibeacon.h"
 
-//*****************************************************************************
-//
-//The following are values that can be passed to adc10_setup()
-//
-//
-//*****************************************************************************
+
 #define ADC10_PIN_2_0		        (BIT0)
 #define ADC10_PIN_2_1              	(BIT1)
 #define ADC10_PIN_2_2              	(BIT2)
@@ -25,45 +20,21 @@
 #define ADC10_PIN_3_6              	(BIT6)
 #define ADC10_PIN_3_7               (BIT7)
 
-//*****************************************************************************
-//
-//The following are values that can be passed to ADC10_init() in the
-//sampleTimerSourceSelect parameter.
-//
-//*****************************************************************************
 #define ADC10_SAMPLEHOLDSOURCE_SC (SHS_0)
-#define ADC10_SAMPLEHOLDSOURCE_1  (SHS_1)
-#define ADC10_SAMPLEHOLDSOURCE_2  (SHS_2)
-#define ADC10_SAMPLEHOLDSOURCE_3  (SHS_3)
+//#define ADC10_SAMPLEHOLDSOURCE_1  (SHS_1)
+//#define ADC10_SAMPLEHOLDSOURCE_2  (SHS_2)
+//#define ADC10_SAMPLEHOLDSOURCE_3  (SHS_3)
 
-//*****************************************************************************
-//
-//The following are values that can be passed to ADC10_init() in the
-//clockSourceSelect parameter.
-//
-//*****************************************************************************
 #define ADC10_CLOCKSOURCE_ADC10OSC (ADC10SSEL_0)
 #define ADC10_CLOCKSOURCE_ACLK     (ADC10SSEL_1)
 #define ADC10_CLOCKSOURCE_MCLK     (ADC10SSEL_2)
 #define ADC10_CLOCKSOURCE_SMCLK    (ADC10SSEL_3)
 
-//*****************************************************************************
-//
-//The following are values that can be passed to ADC10_setupSamplingTimer() in
-//the clockCycleHoldCount parameter.
-//
-//*****************************************************************************
 #define ADC10_CYCLEHOLD_4_CYCLES    (ADC10SHT_0)
 #define ADC10_CYCLEHOLD_8_CYCLES    (ADC10SHT_1)
 #define ADC10_CYCLEHOLD_16_CYCLES   (ADC10SHT_2)
 #define ADC10_CYCLEHOLD_64_CYCLES   (ADC10SHT_3)
 
-//*****************************************************************************
-//
-//The following are values that can be passed to ADC10_memoryConfigure() in the
-//inputSourceSelect parameter.
-//
-//*****************************************************************************
 #define ADC10_INPUT_A0              (INCH_0)
 #define ADC10_INPUT_A1              (INCH_1)
 #define ADC10_INPUT_A2              (INCH_2)
@@ -81,14 +52,7 @@
 //#define ADC10_INPUT_VMID            (INCH_14)
 //#define ADC10_INPUT_VMID            (INCH_15)
 
-//*****************************************************************************
-//
-//The following are values that can be passed to ADC10_init() in the
-//clockSourceDivider parameter.
-//Note: Bit 8-9 determines if the pre-divider is 1, 4, or 64
-//Bits 5-7 determine the the post-divider 1-8 (0x00 - 0xE0)
-//
-//*****************************************************************************
+
 #define ADC10_CLOCKDIVIDER_1   (ADC10DIV_0)
 #define ADC10_CLOCKDIVIDER_2   (ADC10DIV_1)
 #define ADC10_CLOCKDIVIDER_3   (ADC10DIV_2)
@@ -98,47 +62,31 @@
 #define ADC10_CLOCKDIVIDER_7   (ADC10DIV_6)
 #define ADC10_CLOCKDIVIDER_8   (ADC10DIV_7)
 
-
-//*****************************************************************************
-//
-//The following are values that can be passed to adc10_setVolReference()
-//
-//
-//*****************************************************************************
 #define ADC10_REF_VCC_VSS		(SREF_0)
 #define ADC10_REF_VREF_VSS		(SREF_1)
 
-
-
-//*****************************************************************************
-//
-//The following are values that can be passed to ADC10_startConversion() in the
-//conversionSequenceModeSelect parameter.
-//
-//*****************************************************************************
 #define ADC10_SINGLECHANNEL          (CONSEQ_0)
-#define ADC10_SEQOFCHANNELS          (CONSEQ_1)
-#define ADC10_REPEATED_SINGLECHANNEL (CONSEQ_2)
-#define ADC10_REPEATED_SEQOFCHANNELS (CONSEQ_3)
-
-//*****************************************************************************
-//
-//The following are values that can be passed to ADC10_setupSamplingTimer() in
-//the multipleSamplesEnabled parameter.
-//
-//*****************************************************************************
-#define ADC10_MULTIPLESAMPLESDISABLE ( !(MSC) )
-#define ADC10_MULTIPLESAMPLESENABLE  (MSC)
+//#define ADC10_SEQOFCHANNELS          (CONSEQ_1)
+//#define ADC10_REPEATED_SINGLECHANNEL (CONSEQ_2)
+//#define ADC10_REPEATED_SEQOFCHANNELS (CONSEQ_3)
 
 
 void adc10_portSetup(uint8_t ports);
-void adc10_init(uint16_t sampleHoldSignalSourceSelect, uint8_t clockSourceSelect, uint8_t clockSourceDivider, uint16_t clockCycleHoldCount);
-void adc10_enable(void);
-void adc10_disable(void);
+
+// call adc12_init() one time in the beginning
+void adc10_init(uint8_t clockSourceSelect, uint8_t clockSourceDivider, uint16_t clockCycleHoldCount);
+
 void adc10_setVolReference(uint16_t refVoltageSourceSelect);
-void adc10_startConversion(uint16_t inputSourceSelect, uint8_t conversionSequenceModeSelect, uint16_t blockStartAddress, uint8_t buf_size);
-void adc10_stopConversion(void);
-void adc10_enableInterrupt(void);
-void adc10_disableInterrupt(void);
+
+// adc12_end() turns off internal reference
+// as the reference is not automatically power down
+// and turns off adc12 module to save power
+void adc10_offInternalVolReference(void);
+
+// returns the value
+// single channel single conversion mode
+uint16_t adc10_readChannel(uint8_t channelSelect);
+
+
 
 #endif /* ADC10_H_ */
