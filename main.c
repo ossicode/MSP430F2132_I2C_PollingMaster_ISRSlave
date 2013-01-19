@@ -2,10 +2,11 @@
  * main.c
  */
 
-#include "ossibeacon.h"
+#include "ossi_beacon.h"
 #include "printf.h"
 #include "adc10.h"
 #include "i2c.h"
+#include "ossi_timer.h"
 
 #define ADC_BUF_SIZE 8
 #define ADC_BUF_SIZE2 16
@@ -45,23 +46,50 @@ void main(void) {
 	IE2 &= ~UCA0TXIE;
 
 	i2c_portSetup();
-	IO_DIRECTION(EXTWDT,OUTPUT);
-	IO_SET(EXTWDT,LOW);
 
-	IO_DIRECTION(LED,OUTPUT);
-	IO_SET(LED,LOW);
+	P2OUT &= ~EXTWDT_PIN;
+	P2DIR |= EXTWDT_PIN;
+
+	P3OUT &= ~BEACON_CWCONTROL_PIN;
+	P3OUT &= ~LED_PIN;
+	P3DIR |= LED_PIN + BEACON_CWCONTROL_PIN;
+
 
 
 //	TA0CCTL0 |= CCIE;
-	volatile uint8_t i;
+//	volatile uint8_t i;
 
 	_EINT();
 //     i2c Slave
 	 i2c_slaveInit(0x49, 64, beaconData);
 	 i2c_slaveStart();
 
+	volatile uint16_t i;
+	volatile uint32_t timeMs1, timeMs2;
+	volatile uint32_t timeSec1, timeSec2;
+
+	// set for 1ms tick / 1 sec tick / compensate msTick every second
+	systimer_init(TIMER_A1_ACLK, TIMER_A1_DIVIDED_BY_1, TIMER_A1_UP_MODE, 33, 32765);
+	systimer_start();
+
+
 	while(1)
 	{
+
+//		timeSec1 = systimer_getSecTick();
+//		timeMs1 = systimer_getMsTick();
+//		// 2 sec
+//		for(i = 0 ; i < 2000; i++)
+//		{
+//			// 1 ms
+//			__delay_cycles(8000);
+//		}
+//
+//
+//		timeMs2 = systimer_getMsTick();
+//		timeSec2 = systimer_getSecTick();
+
+		_NOP();
 
 //    	volatile uint8_t i;
 //    	for(i = 0 ; i < 255 ; i++)

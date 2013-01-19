@@ -17,21 +17,23 @@ volatile uint8_t i2cTimeOut;
 
 void i2c_timerInit(uint16_t timerASourceSelect, uint8_t timerADividerSelect, uint8_t timerAMode, uint16_t timerAThreshold)
 {
-	// reset timeout variable
-	i2cTimeOut = 0;
-
 	// reset timer A
 	TA0CTL = TACLR;
 
 	TA0CCR0 = timerAThreshold;
-	TA0CTL = timerASourceSelect;  // TASSEL_1: Timer A clock source select: 1 - ACLK
-	TA0CTL |= timerADividerSelect;    // ID_3: Timer A input divider: 3 - /8
+	TA0CTL = timerADividerSelect;    // ID_3: Timer A input divider: 3 - /8
+	TA0CTL |= timerASourceSelect;  // TASSEL_1: Timer A clock source select: 1 - ACLK
 	TA0CTL |= timerAMode;   //  MC_1: Timer A mode control: 1 - Up to CCR0 // timer start counting from now
 }
 
 
 void i2c_timerTimeoutStart(void)
 {
+	// reset timeout variable
+	i2cTimeOut = 0;
+
+	TAR = 0;
+
 	// make sure clear timer A flag before enable interrupt
 	TA0CCTL0 &= ~CCIFG;
 	TA0CCTL0 = CCIE;
@@ -42,10 +44,11 @@ void i2c_timerTimeoutStop(void)
 {
 	// disable timer interrupt
 	TA0CCTL0 &= ~CCIE;
-	// reset timer
-	TA0CTL = TACLR;
+	TA0CCTL0 &= ~CCIFG;
 	// Timer Stop
 	TA0CTL |= MC_0;
+
+	TAR= 0;
 	i2cTimeOut = 0;
 
 }
@@ -58,6 +61,6 @@ __interrupt void Timer_A (void)
 	// disable timer interrupt
 	TA0CCTL0 &= ~CCIE;
 	i2cTimeOut = 1;
-	IO_SET(LED,TOGGLE);
+	P3OUT ^= LED_PIN;
 }
 

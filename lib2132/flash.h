@@ -8,7 +8,7 @@
 #ifndef FLASH_H_
 #define FLASH_H_
 
-#include "ossibeacon.h"
+#include "ossi_beacon.h"
 
 // This flash module use Segment C as main
 // and Segment D for buffering

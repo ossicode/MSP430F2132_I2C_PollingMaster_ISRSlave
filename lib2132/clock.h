@@ -19,7 +19,7 @@
 #ifndef CLOCK_H_
 #define CLOCK_H_
 
-#include "msp430x21x2.h"
+#include "msp430f2132.h"
 #include "ossitypes.h"
 #include "debug.h"
 

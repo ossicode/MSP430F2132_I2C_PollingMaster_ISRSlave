@@ -23,7 +23,11 @@ uint8_t clock_setup(void)
 
 	BCSCTL1 = CALBC1_8MHZ;
 	DCOCTL = CALDCO_8MHZ;
-	// TODO: Capacitor setting for ACLK
+	// TODO: Capacitor setting for ACLK??
+	// 12.5pF internal Capacitor setting
+	// got rid of external capacitor now
+	BCSCTL3 &= 0x01;
+	BCSCTL3 |= XCAP_3;
 
 	return CLOCK_DCO_LFXT1;
 }

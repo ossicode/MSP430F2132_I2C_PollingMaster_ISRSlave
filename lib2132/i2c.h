@@ -8,11 +8,11 @@
 #ifndef I2C_H_
 #define I2C_H_
 
-#include "ossibeacon.h"
+#include "ossi_beacon.h"
 #include "timerA.h"
 
-#define I2C_SDA_PIN BIT1
-#define I2C_SCL_PIN BIT3
+//#define I2C_SDA_PIN BIT1
+//#define I2C_SCL_PIN BIT2
 
 /*
  * I2C Master Status

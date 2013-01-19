@@ -260,7 +260,7 @@ uint8_t i2c_generalCall(void)
 	i2cMasterStatus = I2C_IDLE;
 
 	// timer start
-	i2c_timerInit(TIMER_A_ACLK, TIMER_A_DIVIDED_BY_8, TIMER_A_UP_MODE , DEFAULT_CCR0); // set i2c timeout timer
+	i2c_timerInit(TIMER_A0_ACLK, TIMER_A0_DIVIDED_BY_8, TIMER_A0_UP_MODE , DEFAULT_CCR0); // set i2c timeout timer
 	i2c_timerTimeoutStart();
 
 	i2cMasterStatus = i2c_waitForBusReady();
@@ -358,7 +358,7 @@ uint8_t i2c_masterWrite(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 	i2cMasterStatus = I2C_IDLE;
 
 	// timer start
-	i2c_timerInit(TIMER_A_ACLK, TIMER_A_DIVIDED_BY_8, TIMER_A_UP_MODE , DEFAULT_CCR0); // set i2c timeout timer
+	i2c_timerInit(TIMER_A0_ACLK, TIMER_A0_DIVIDED_BY_8, TIMER_A0_UP_MODE , DEFAULT_CCR0); // set i2c timeout timer
 	i2c_timerTimeoutStart();
 
 	i2cMasterStatus = i2c_waitForBusReady();
@@ -476,7 +476,7 @@ uint8_t i2c_masterRead(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 	i2cMasterStatus = I2C_IDLE;
 
 	// timer start
-	i2c_timerInit(TIMER_A_ACLK, TIMER_A_DIVIDED_BY_8, TIMER_A_UP_MODE , DEFAULT_CCR0); // set i2c timeout timer
+	i2c_timerInit(TIMER_A0_ACLK, TIMER_A0_DIVIDED_BY_8, TIMER_A0_UP_MODE , DEFAULT_CCR0); // set i2c timeout timer
 	i2c_timerTimeoutStart();
 
 	i2cMasterStatus = i2c_waitForBusReady();
@@ -744,7 +744,8 @@ __interrupt void USCIAB0RX_ISR(void)
 #pragma vector = USCIAB0TX_VECTOR
 __interrupt void USCIAB0TX_ISR(void)
 {
-	IO_SET(EXTWDT,HIGH);
+	P2OUT |= EXTWDT_PIN;
+
 	// uart interrupt
 	if ((IFG2 & UCA0TXIFG) && (IE2 & UCA0TXIE))
 	{
@@ -913,5 +914,5 @@ __interrupt void USCIAB0TX_ISR(void)
 //			}
 		}
 	}
-	IO_SET(EXTWDT,LOW);
+	P2OUT &= ~EXTWDT_PIN;
 }
