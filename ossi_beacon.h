@@ -9,7 +9,7 @@
 #define OSSIBEACON_H_
 
 #include "msp430f2132.h"
-#include "ossitypes.h"
+#include "ossi_types.h"
 #include "clock.h"
 #include "system.h"
 #include "util.h"

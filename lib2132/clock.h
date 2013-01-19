@@ -20,7 +20,7 @@
 #define CLOCK_H_
 
 #include "msp430f2132.h"
-#include "ossitypes.h"
+#include "ossi_types.h"
 #include "debug.h"
 
 #define CLOCK_DCO_LFXT1			 	(1)

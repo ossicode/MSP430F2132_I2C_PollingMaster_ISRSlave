@@ -11,7 +11,6 @@
 #include "ossi_beacon.h"
 #include "timerA.h"
 
-
 /*
  * I2C Master Status
  */
