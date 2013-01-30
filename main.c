@@ -11,7 +11,7 @@
 #define ADC_BUF_SIZE 8
 #define ADC_BUF_SIZE2 16
 
-uint8_t beaconData[64]={0};
+uint8_t obcData[64]={0};
 
 uint8_t TxData[9] = {0,3,3,7,3,3,7,0,9};
 uint8_t generalCall[1]={0};
@@ -40,8 +40,8 @@ void main(void) {
 
 	adc10_portSetup(ADC10_PIN_2_0 + ADC10_PIN_2_1);
 
-	uart_setup_9600();
-	uart_init();
+	uart_initACLK9600();
+	uart_start();
 	IE2 &= ~UCA0RXIE;
 	IE2 &= ~UCA0TXIE;
 
@@ -61,7 +61,7 @@ void main(void) {
 
 	_EINT();
 //     i2c Slave
-	 i2c_slaveInit(0x49, 64, beaconData);
+	 i2c_slaveInit(0x49, 64, obcData);
 	 i2c_slaveStart();
 
 	volatile uint16_t i;

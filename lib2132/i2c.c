@@ -52,10 +52,10 @@ void i2c_portSetup(void)
 //
 //}
 //
-//void i2c_disable(void)
-//{
-//
-//}
+void i2c_disable(void)
+{
+	UCB0CTL1 = UCSWRST;
+}
 
 void i2c_reset(void)
 {
@@ -266,6 +266,7 @@ uint8_t i2c_generalCall(void)
 	i2cMasterStatus = i2c_waitForBusReady();
 	if (i2cMasterStatus != I2C_IDLE)
 	{
+		i2c_disable();
 		return 0;
 	}
 
@@ -291,12 +292,14 @@ uint8_t i2c_generalCall(void)
 		// check Arbitration Lost before NACK as when Arbitration is lost you cannot send STOP after NACK
 		if(i2c_checkArbLost())
 		{
+			i2c_disable();
 			i2cMasterStatus = I2C_ARB_LOST;
 			return 0;
 		}
 		// check NACK before checking timeout to prevent timeout when we have NACK
 		if(i2c_checkNACK())
 		{
+			i2c_disable();
 			i2cMasterStatus = I2C_NACK;
 			// TODO: generate STOP condition
 			return 0;
@@ -304,6 +307,7 @@ uint8_t i2c_generalCall(void)
 
 		if(i2c_checkTimeout())
 		{
+			i2c_disable();
 			i2cMasterStatus = I2C_TIMEOUT;;
 			return 0;
 		}
@@ -317,11 +321,14 @@ uint8_t i2c_generalCall(void)
 	{
 		if(i2c_checkTimeout())
 		{
+			i2c_disable();
 			i2cMasterStatus = I2C_TIMEOUT;;
 			return 0;
 		}
 	}
 
+	i2c_disable();
+
 	// After STOP condition is transfered, disable all i2c interrupt
 	i2c_disableAllInterrupt();
 
@@ -332,17 +339,17 @@ uint8_t i2c_generalCall(void)
 
 }
 
-uint8_t i2c_ackPolling(uint8_t slaveAddress)
-{
-
-	// After STOP condition is transfered, disable all i2c interrupt
-	i2c_disableAllInterrupt();
-
-	// timer stop after sending STOP condition
-	i2c_timerTimeoutStop();
-
-	return 1;
-}
+//uint8_t i2c_ackPolling(uint8_t slaveAddress)
+//{
+//
+//	// After STOP condition is transfered, disable all i2c interrupt
+//	i2c_disableAllInterrupt();
+//
+//	// timer stop after sending STOP condition
+//	i2c_timerTimeoutStop();
+//
+//	return 1;
+//}
 
 uint8_t i2c_masterWrite(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 {
@@ -364,6 +371,7 @@ uint8_t i2c_masterWrite(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 	i2cMasterStatus = i2c_waitForBusReady();
 	if (i2cMasterStatus != I2C_IDLE)
 	{
+		i2c_disable();
 		return 0;
 	}
 
@@ -394,12 +402,14 @@ uint8_t i2c_masterWrite(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 			// check Arbitration Lost before NACK as when Arbitration is lost you cannot send STOP after NACK
 			if(i2c_checkArbLost())
 			{
+				i2c_disable();
 				i2cMasterStatus = I2C_ARB_LOST;
 				return 0;
 			}
 			// check NACK before checking timeout to prevent timeout when we have NACK
 			if(i2c_checkNACK())
 			{
+				i2c_disable();
 				i2cMasterStatus = I2C_NACK;
 				// TODO: generate STOP condition
 				return 0;
@@ -407,6 +417,7 @@ uint8_t i2c_masterWrite(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 
 			if(i2c_checkTimeout())
 			{
+				i2c_disable();
 				i2cMasterStatus = I2C_TIMEOUT;;
 				return 0;
 			}
@@ -422,6 +433,7 @@ uint8_t i2c_masterWrite(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 		// check Arbitration Lost before NACK as when Arbitration is lost you cannot send STOP after NACK
 		if(i2c_checkArbLost())
 		{
+			i2c_disable();
 			i2cMasterStatus = I2C_ARB_LOST;
 			return 0;
 		}
@@ -429,6 +441,7 @@ uint8_t i2c_masterWrite(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 		// check NACK before checking timeout to prevent timeout when we have NACK
 		if(i2c_checkNACK())
 		{
+			i2c_disable();
 			i2cMasterStatus = I2C_NACK;
 			// TODO: generate STOP condition
 			return 0;
@@ -436,6 +449,7 @@ uint8_t i2c_masterWrite(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 
 		if(i2c_checkTimeout())
 		{
+			i2c_disable();
 			i2cMasterStatus = I2C_TIMEOUT;;
 			return 0;
 		}
@@ -445,8 +459,11 @@ uint8_t i2c_masterWrite(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 	i2cMasterStatus = i2c_waitForPreviousTransfer(byteCount);
 	if (i2cMasterStatus != I2C_TRANSFER_DONE)
 	{
+		i2c_disable();
 		return 0;
 	}
+
+	i2c_disable();
 
 	// After STOP condition is transfered, disable all i2c interrupt
 	i2c_disableAllInterrupt();
@@ -482,6 +499,7 @@ uint8_t i2c_masterRead(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 	i2cMasterStatus = i2c_waitForBusReady();
 	if (i2cMasterStatus != I2C_IDLE)
 	{
+		i2c_disable();
 		return 0;
 	}
 
@@ -517,6 +535,7 @@ uint8_t i2c_masterRead(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 				// check Arbitration Lost before NACK as when Arbitration is lost you cannot send STOP after NACK
 				if(i2c_checkArbLost())
 				{
+					i2c_disable();
 					i2cMasterStatus = I2C_ARB_LOST;
 					return 0;
 				}
@@ -524,6 +543,7 @@ uint8_t i2c_masterRead(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 				// check NACK before checking timeout to prevent timeout when we have NACK
 				if(i2c_checkNACK())
 				{
+					i2c_disable();
 					i2cMasterStatus = I2C_NACK;
 					// TODO: generate STOP condition
 					return 0;
@@ -531,6 +551,7 @@ uint8_t i2c_masterRead(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 
 				if(i2c_checkTimeout())
 				{
+					i2c_disable();
 					i2cMasterStatus = I2C_TIMEOUT;;
 					return 0;
 				}
@@ -557,6 +578,7 @@ uint8_t i2c_masterRead(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 			// check Arbitration Lost before NACK as when Arbitration is lost you cannot send STOP after NACK
 			if(i2c_checkArbLost())
 			{
+				i2c_disable();
 				i2cMasterStatus = I2C_ARB_LOST;
 				return 0;
 			}
@@ -564,12 +586,14 @@ uint8_t i2c_masterRead(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 			// check NACK before checking timeout to prevent timeout when we have NACK
 			if(i2c_checkNACK())
 			{
+				i2c_disable();
 				i2cMasterStatus = I2C_NACK;
 				return 0;
 			}
 
 			if(i2c_checkTimeout())
 			{
+				i2c_disable();
 				i2cMasterStatus = I2C_TIMEOUT;;
 				return 0;
 			}
@@ -581,9 +605,12 @@ uint8_t i2c_masterRead(uint8_t slaveAddress, uint8_t byteCount, uint8_t *data)
 	i2cMasterStatus = i2c_waitForPreviousTransfer(byteCount);
 	if (i2cMasterStatus != I2C_TRANSFER_DONE)
 	{
+		i2c_disable();
 		return 0;
 	}
 
+
+	i2c_disable();
 
 	// After STOP condition is transfered, disable all i2c interrupt
 	i2c_disableAllInterrupt();
